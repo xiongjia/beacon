@@ -4,9 +4,21 @@ version: '3'
 
 vars:
   PROJECT: Beacon
+  GO: go
 
 tasks:
   default:
+    deps: [beacon]
+
+  beacon:
+    silent: false
+    sources:
+      - ./cmd/beacon/**/*
+    generates:
+      - ./beacon.exe
     cmds:
-      - echo "TODO Building {{.PROJECT}}"
-    silent: true
+     - "{{.GO}} build  -v -o beacon.exe ./cmd/beacon/main.go"
+
+  buildDbg:
+    cmds:
+     - echo "OS = {{OS}}"
