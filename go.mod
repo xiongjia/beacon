@@ -1,4 +1,4 @@
-module beacon
+module github.com/xiongjia/beacon
 
 go 1.23.2
 

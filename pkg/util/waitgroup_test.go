@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"beacon/pkg/util"
+	"github.com/xiongjia/beacon/pkg/util"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/goleak"
