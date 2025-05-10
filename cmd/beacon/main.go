@@ -1,9 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
+
+	"github.com/xiongjia/beacon/pkg/util"
 )
 
 func main() {
-	fmt.Println("test")
+	util.InitDefaultLog(util.LogOption{Level: slog.LevelDebug, AddSource: true})
+	slog.Debug("test")
 }
