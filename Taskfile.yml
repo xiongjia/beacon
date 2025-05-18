@@ -14,10 +14,12 @@ tasks:
     silent: false
     sources:
       - ./cmd/beacon/**/*
+      - ./Taskfile.yml
     generates:
       - ./beacon.exe
     cmds:
-     - "{{.GO}} build  -v -o beacon.exe ./cmd/beacon/main.go"
+     - "{{.GO}} vet ./cmd/beacon/main.go"
+     - "{{.GO}} build -o beacon.exe ./cmd/beacon/main.go"
 
   buildDbg:
     cmds:
