@@ -3,6 +3,7 @@ package util
 import (
 	"log/slog"
 	"os"
+	"time"
 )
 
 type (
@@ -20,4 +21,5 @@ func NewLog(opts LogOption) *slog.Logger {
 
 func InitDefaultLog(opts LogOption) {
 	slog.SetDefault(NewLog(opts))
+	time.Now()
 }
