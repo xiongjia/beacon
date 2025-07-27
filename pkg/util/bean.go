@@ -8,16 +8,16 @@ import (
 )
 
 type (
-	BeanScope int
-
+	BeanScope      int
 	BeanDefinition struct {
 		Name        string
 		Type        reflect.Type
 		Scope       BeanScope
 		Constructor interface{}
-		instance    interface{}
-		initOnce    sync.Once
-		mu          sync.Mutex
+
+		instance interface{}
+		initOnce sync.Once
+		mu       sync.Mutex
 	}
 
 	BeanContainer struct {

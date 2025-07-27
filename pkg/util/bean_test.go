@@ -2,6 +2,7 @@ package util
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -46,4 +47,14 @@ func TestBeanContaner(t *testing.T) {
 	svc := userService.(UserService)
 	userId := svc.GetUser(123)
 	t.Logf("user id = %s", userId)
+}
+
+func TestReflect(t *testing.T) {
+	test := func() UserService {
+		return &UserServiceImpl{}
+	}
+	constructorType := reflect.TypeOf(test)
+	if constructorType.Kind() != reflect.Func {
+		return
+	}
 }
