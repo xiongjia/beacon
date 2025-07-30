@@ -11,38 +11,53 @@ import (
 
 type (
 	LogOption struct {
-		Level         string
-		AddSource     bool
+		Level     string
+		AddSource bool
+		// To disable the log writer for STDOut.
+		// In default, DisableStdout is false (It appends log lines to stdout.)
 		DisableStdout bool
 
+		// LogFilename is the file to write logs to.
+		// If the LogFilename is empty the logger handler will skip the FS log writer.
 		LogFilename            string
 		LogFileRotateMaxSizeMB int
 		LogFileRotateMaxBackup int
 		LogFileRtateCompress   bool
 	}
 
-	logNullWriter struct{}
+	nullWriter struct{}
 )
 
 const (
-	LOG_FILE_ROTATE_MIN_SIZE_MB     = 5
-	LOG_FILE_ROTATE_DEFAULT_SIZE_MB = 300
-	LOG_FILE_ROTATE_MIN_BACKUP      = 1
-	LOG_FILE_ROTATE_DEFAULT_BACKUP  = 5
+	LOG_LEVEL_INFO  = "info"
+	LOG_LEVEL_DEBUG = "debug"
+	LOG_LEVEL_WARN  = "warn"
+	LOG_LEVEL_ERROR = "error"
+
+	logFileRotateMinSizeMB     = 5
+	logFileRotateDefaultSizeMB = 100
+	logFileRotateMinBackup     = 1
+	logFileRotateDefaultBackup = 5
 )
 
-func (logNullWriter) Write(p []byte) (n int, err error) {
+func NewLogger(opts LogOption) *slog.Logger {
+	return slog.New(makeJsonLogHandler(opts))
+}
+
+func (nullWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
 func parseLogLevel(levelStr string) slog.Level {
 	switch strings.ToLower(strings.TrimSpace(levelStr)) {
-	case "debug":
+	case LOG_LEVEL_DEBUG:
 		return slog.LevelDebug
-	case "warn":
+	case LOG_LEVEL_WARN:
 		return slog.LevelWarn
-	case "error":
+	case LOG_LEVEL_ERROR:
 		return slog.LevelError
+	case LOG_LEVEL_INFO:
+		return slog.LevelInfo
 	default:
 		return slog.LevelInfo
 	}
@@ -50,9 +65,9 @@ func parseLogLevel(levelStr string) slog.Level {
 
 func parseLogFileRotateMaxBackup(opts LogOption) int {
 	if opts.LogFileRotateMaxBackup == 0 {
-		return LOG_FILE_ROTATE_DEFAULT_BACKUP
-	} else if opts.LogFileRotateMaxBackup < LOG_FILE_ROTATE_MIN_BACKUP {
-		return LOG_FILE_ROTATE_MIN_BACKUP
+		return logFileRotateDefaultBackup
+	} else if opts.LogFileRotateMaxBackup < logFileRotateMinBackup {
+		return logFileRotateMinBackup
 	} else {
 		return opts.LogFileRotateMaxBackup
 	}
@@ -60,9 +75,9 @@ func parseLogFileRotateMaxBackup(opts LogOption) int {
 
 func parseLogFileRotateMaxSize(opts LogOption) int {
 	if opts.LogFileRotateMaxSizeMB == 0 {
-		return LOG_FILE_ROTATE_DEFAULT_SIZE_MB
-	} else if opts.LogFileRotateMaxSizeMB < LOG_FILE_ROTATE_MIN_SIZE_MB {
-		return LOG_FILE_ROTATE_MIN_SIZE_MB
+		return logFileRotateDefaultSizeMB
+	} else if opts.LogFileRotateMaxSizeMB < logFileRotateMinSizeMB {
+		return logFileRotateMinSizeMB
 	} else {
 		return opts.LogFileRotateMaxSizeMB
 	}
@@ -71,7 +86,7 @@ func parseLogFileRotateMaxSize(opts LogOption) int {
 func makeLogWriter(opts LogOption) io.Writer {
 	logFilename := strings.TrimSpace(opts.LogFilename)
 	if logFilename == "" && opts.DisableStdout {
-		return &logNullWriter{}
+		return &nullWriter{}
 	}
 
 	writers := make([]io.Writer, 0, 2)
@@ -97,12 +112,4 @@ func makeJsonLogHandler(opts LogOption) slog.Handler {
 	}
 	logWriter := makeLogWriter(opts)
 	return slog.NewJSONHandler(logWriter, handlerOpts)
-}
-
-func NewLog(opts LogOption) *slog.Logger {
-	return slog.New(makeJsonLogHandler(opts))
-}
-
-func InitDefaultLog(opts LogOption) {
-	slog.SetDefault(NewLog(opts))
 }
