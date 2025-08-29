@@ -3,10 +3,13 @@ package main
 import (
 	"log/slog"
 
-	"github.com/xiongjia/beacon/pkg/util"
+	"github.com/xiongjia/beacon/pkg/logger"
 )
 
 func main() {
-	slog.SetDefault(util.NewLogger(util.LogOption{Level: util.LOG_LEVEL_DEBUG}))
+	logger.SetDefaultSlog(
+		logger.LoggerWithLevel("debug"),
+		logger.LoggerWithSource(true),
+	)
 	slog.Debug("test", slog.String("test", "t"))
 }
