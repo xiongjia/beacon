@@ -28,4 +28,6 @@ func main() {
 	if err := eng.Start(); err != nil {
 		slog.Error("engine error", slog.Any("error", err))
 	}
+
+	select {}
 }

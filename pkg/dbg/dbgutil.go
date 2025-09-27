@@ -97,7 +97,7 @@ func (d *DebugManager) DebugServerAddr() (string, error) {
 	d.mutx.Lock()
 	defer d.mutx.Unlock()
 	if d.server == nil {
-		return "", fmt.Errorf("debug server not running")
+		return "", fmt.Errorf("debug server is not running")
 	}
 	return d.server.GetListnerAddr()
 }
