@@ -1,8 +1,6 @@
 package dbg
 
 import (
-	"context"
-	"errors"
 	"expvar"
 	"fmt"
 	"log/slog"
@@ -13,6 +11,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/xiongjia/beacon/pkg/util"
 )
 
 type (
@@ -28,18 +28,28 @@ type (
 		mux  *http.ServeMux
 		mutx sync.Mutex
 
-		server *http.Server
+		server *util.HttpServer
 	}
 )
 
 const (
+	// the default base url. The default pprof url is /debug/pprof/
+	// This value can be changed via DebugManagerWithBaseUrl("/your-prefix/debug")
 	DEFAULT_BASEURL = "/debug"
 )
 
 var (
+	// the default listner address for debug server
+	// This value can be set via DebugManagerWithAddr()
 	DEFAULT_ADDR = net.JoinHostPort("127.0.0.1", "6060")
 )
 
+// NewDebugManager allocats and return a new [DebugManager].
+//
+// Debug Server options: DebugManagerWithBaseUrl(), DebugManagerWithAddr()
+// Debug Server interfaces:
+// - To start the debug server: [DebugManager.Start()]
+// - To stop the debug server: [DebugManager.Stop(timemout)]
 func NewDebugManager(opts ...DebugOption) *DebugManager {
 	dbgOpts := dbgOption{
 		baseUrl: DEFAULT_BASEURL,
@@ -61,6 +71,8 @@ func NewDebugManager(opts ...DebugOption) *DebugManager {
 	return &DebugManager{mux: mux, addr: dbgOpts.addr}
 }
 
+// The default base url is "/debug"
+// Example:  DebugManagerWithBaseUrl("/internal/debug") => The pprof url is "/internal/debug/pprof"
 func DebugManagerWithBaseUrl(baseUrl string) DebugOption {
 	return func(opt *dbgOption) {
 		if baseUrl != "" {
@@ -69,12 +81,24 @@ func DebugManagerWithBaseUrl(baseUrl string) DebugOption {
 	}
 }
 
+// The default listner address is "127.0.0.1:6060"
 func DebugManagerWithAddr(host string, port int16) DebugOption {
 	return func(opt *dbgOption) {
 		opt.addr = net.JoinHostPort(host, strconv.Itoa(int(port)))
 	}
 }
 
+func (d *DebugManager) DebugServerAddr() (string, error) {
+	d.mutx.Lock()
+	defer d.mutx.Unlock()
+	if d.server == nil {
+		return "", fmt.Errorf("debug server not running")
+	}
+	return d.server.GetListnerAddr()
+}
+
+// DebugManager.Start() starts the debug http server.
+// It will return error when the server already running.
 func (d *DebugManager) Start() error {
 	d.mutx.Lock()
 	defer d.mutx.Unlock()
@@ -83,34 +107,29 @@ func (d *DebugManager) Start() error {
 		slog.Error("debug server is already running", slog.String("addr", d.addr))
 		return fmt.Errorf("debug server already running")
 	}
-	d.server = &http.Server{Addr: d.addr, Handler: d.mux}
-	go func() {
-		slog.Debug("debug server starting", slog.String("addr", d.addr))
-		err := d.server.ListenAndServe()
-		if errors.Is(err, http.ErrServerClosed) {
-			slog.Debug("debug server is closed")
-		} else {
-			slog.Error("debug server error", slog.Any("error", err))
-		}
-	}()
+	dbgServer := util.NewHttpServer(d.addr, d.mux)
+	err := dbgServer.StartServer()
+	if err != nil {
+		slog.Error("debug server start", slog.Any("error", err))
+		return err
+	}
+	d.server = dbgServer
 	return nil
 }
 
+// DebugManager.Stop(timeout) stops the debug http server.
+// It will return error when the server is not running.
 func (d *DebugManager) Stop(timeout time.Duration) error {
 	d.mutx.Lock()
 	defer d.mutx.Unlock()
 	if d.server == nil {
 		return fmt.Errorf("debug server not running")
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-	err := d.server.Shutdown(ctx)
-	if err == nil {
-		d.server = nil
-		slog.Debug("debug server is stopped")
-	} else {
+	if err := d.server.Shutdown(timeout); err != nil {
 		slog.Error("stop debug server error", slog.Any("error", err))
+		return err
 	}
-	return err
+	d.server = nil
+	slog.Debug("debug server is stopped")
+	return nil
 }

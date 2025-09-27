@@ -5,7 +5,7 @@ import (
 	"math/rand/v2"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type (
@@ -68,21 +68,23 @@ func (svc *memDatabaseServiceImpl) GetRandNum() int32 {
 }
 
 func TestDependencyInjection(t *testing.T) {
+	assert := require.New(t)
+
 	inj := NewInjector()
 	err := Provide(inj, newUserSerice)
-	assert.Error(t, err)
+	assert.NoError(err)
 	err = Provide(inj, newMemDbService)
-	assert.Error(t, err)
+	assert.NoError(err)
 
 	usrSvc, err := Invoke[UserService](inj)
-	assert.Error(t, err)
+	assert.NoError(err)
 
 	username, err := usrSvc.GetUsername()
-	assert.Error(t, err)
-	assert.Equal(t, "test1", username)
+	assert.NoError(err)
+	assert.Equal("test1", username)
 
 	// usrSvc & usrSvc2 should refer to the same service instance
 	usrSvc2, err := Invoke[UserService](inj)
-	assert.Error(t, err)
-	assert.Equal(t, usrSvc.GetRandNum(), usrSvc2.GetRandNum())
+	assert.NoError(err)
+	assert.Equal(usrSvc.GetRandNum(), usrSvc2.GetRandNum())
 }

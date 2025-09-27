@@ -5,16 +5,20 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLogLevel(t *testing.T) {
+	assert := require.New(t)
+
 	l := NewLogger(LoggerWithLevel("info"))
-	assert.False(t, l.Enabled(t.Context(), slog.LevelDebug), "Level debug is disabled")
-	assert.True(t, l.Enabled(t.Context(), slog.LevelInfo), "Level info is enable")
+	assert.False(l.Enabled(t.Context(), slog.LevelDebug), "Level debug is disabled")
+	assert.True(l.Enabled(t.Context(), slog.LevelInfo), "Level info is enable")
 }
 
 func TestLogWriter(t *testing.T) {
+	assert := require.New(t)
+
 	var logBuffer bytes.Buffer
 	l := NewLogger(
 		LoggerWithLevel("info"),
@@ -25,7 +29,7 @@ func TestLogWriter(t *testing.T) {
 	logData := logBuffer.String()
 
 	t.Logf("LogData: %s\n", logData)
-	assert.Contains(t, logData, "INFO")
-	assert.Contains(t, logData, "test log")
-	assert.Contains(t, logData, "value")
+	assert.Contains(logData, "INFO")
+	assert.Contains(logData, "test log")
+	assert.Contains(logData, "value")
 }
