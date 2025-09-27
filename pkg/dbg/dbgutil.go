@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
-	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -44,6 +43,19 @@ var (
 	DEFAULT_ADDR = net.JoinHostPort("127.0.0.1", "6060")
 )
 
+func newDebugMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	// Debugger handler for pprof
+	mux.HandleFunc("GET  /pprof/", pprof.Index)
+	mux.HandleFunc("GET /pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("GET /pprof/profile", pprof.Profile)
+	mux.HandleFunc("GET /pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("GET /pprof/trace", pprof.Trace)
+	// Debugger Handler for expvar
+	mux.Handle("GET /vars", expvar.Handler())
+	return mux
+}
+
 // NewDebugManager allocats and return a new [DebugManager].
 //
 // Debug Server options: DebugManagerWithBaseUrl(), DebugManagerWithAddr()
@@ -58,17 +70,10 @@ func NewDebugManager(opts ...DebugOption) *DebugManager {
 	for _, opt := range opts {
 		opt(&dbgOpts)
 	}
-
-	mux := http.NewServeMux()
-	// Debugger handler for pprof
-	mux.HandleFunc("GET "+path.Join(dbgOpts.baseUrl, "/pprof")+"/", pprof.Index)
-	mux.HandleFunc("GET "+path.Join(dbgOpts.baseUrl, "/pprof/cmdline"), pprof.Cmdline)
-	mux.HandleFunc("GET "+path.Join(dbgOpts.baseUrl, "/pprof/profile"), pprof.Profile)
-	mux.HandleFunc("GET "+path.Join(dbgOpts.baseUrl, "/pprof/symbol"), pprof.Symbol)
-	mux.HandleFunc("GET "+path.Join(dbgOpts.baseUrl, "/pprof/trace"), pprof.Trace)
-	// Debugger Handler for expvar
-	mux.Handle("GET "+path.Join(dbgOpts.baseUrl, "/vars"), expvar.Handler())
-	return &DebugManager{mux: mux, addr: dbgOpts.addr}
+	return &DebugManager{
+		addr: dbgOpts.addr,
+		mux:  util.NewMainMuxGroup().Group(dbgOpts.baseUrl, newDebugMux()),
+	}
 }
 
 // The default base url is "/debug"
