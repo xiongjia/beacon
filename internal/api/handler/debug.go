@@ -14,8 +14,12 @@ type (
 	}
 )
 
-func NewDebugHandler(di *injector.Injector) ApiHandler {
-	return &DebugHandler{}
+func NewDebugHandler(di *injector.Injector) (ApiHandler, error) {
+	dbgService, err := injector.Invoke[core.DebugService](di)
+	if err != nil {
+		return nil, err
+	}
+	return &DebugHandler{dbgService: dbgService}, nil
 }
 
 func (*DebugHandler) Register(mux *http.ServeMux) {
