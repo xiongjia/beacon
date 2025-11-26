@@ -13,28 +13,52 @@ import (
 )
 
 type (
+	EngineOpts func(*engineOpts)
+
+	engineOpts struct {
+		enableDebugServer bool
+		debugServerPort   int16
+	}
+
 	Engine struct {
-		mutx   sync.Mutex
-		di     *injector.Injector
-		router *api.Router
-		server *util.HttpServer
+		mutx    sync.Mutex
+		engOpts *engineOpts
+		di      *injector.Injector
+		router  *api.Router
+		server  *util.HttpServer
 	}
 )
 
-func NewEngine() (*Engine, error) {
+const (
+	DBG_SERVER_DEFAULT_PORT = 6060
+)
+
+func NewEngine(opts ...EngineOpts) (*Engine, error) {
+	engOpts := &engineOpts{
+		enableDebugServer: false,
+		debugServerPort:   DBG_SERVER_DEFAULT_PORT,
+	}
+	for _, opt := range opts {
+		opt(engOpts)
+	}
+
+	// create services
 	di := injector.NewInjector()
 	if err := injector.Provide(di, core.NewDebugService); err != nil {
 		slog.Error("create service error")
 		return nil, err
 	}
-	// TODO create other services
-
 	// create API router
 	router, err := api.NewRouter(di)
 	if err != nil {
 		return nil, err
 	}
-	return &Engine{di: di, router: router}, nil
+	return &Engine{engOpts: engOpts, di: di, router: router}, nil
+}
+
+func (e *Engine) Reload() error {
+	// xxx
+	return nil
 }
 
 func (e *Engine) Start() error {

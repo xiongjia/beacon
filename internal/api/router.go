@@ -22,7 +22,7 @@ func newHandle(handler handler.ApiHandler) *http.ServeMux {
 
 func NewRouter(di *injector.Injector) (*Router, error) {
 	// create handlers
-	dbgHandler := handler.NewDebugHandler(di)
+	dbgHandler, _ := handler.NewDebugHandler(di)
 
 	muxGroup := util.NewMainMuxGroup()
 	muxGroup.Group("/api/v1/debug", newHandle(dbgHandler))
